@@ -43,7 +43,7 @@
 
 ### kotlin 을 이용한 실습
 
-- repository안에 README.md 파일 참고
+- 공유 예정
 
 ### kotlin, spring boot 를 이용한 실습
 
