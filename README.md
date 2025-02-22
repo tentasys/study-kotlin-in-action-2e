@@ -1,6 +1,6 @@
 # Kotlin in Action
 
-- [책 소개](https://www.yes24.com/product/goods/55148593)
+- [책 소개](https://www.yes24.com/Product/Goods/142690359)
 - 책은 기간전에 개별구매해야 합니다.
 
 ## 기간
