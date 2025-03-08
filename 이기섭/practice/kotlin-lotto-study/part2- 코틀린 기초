@@ -1,0 +1,183 @@
+#2장 코틀린 기초
+<br><br>
+<hr>
+
+##다루는 내용
+
+>- 함수, 변수, 클래스, 인엄, 프로퍼티를 선언하는 방법
+>- 코틀린 제어 구조
+>- 스마트 캐스트
+>- 예외 던지기와 예외 잡기
+<hr>  
+<br><br>
+  
+###2.1 기본 요소 : 함수와 변수
+###2.1.1 main()
+```kotlin
+fun main() {
+    println("Hello, world!")
+}
+
+```
+
+- 수많은 fun 을 만드는 재밌는 일이라고 한다.너무재밌겠다
+- 함수는 모든 코틀린 파일에 **최상위 수준**에 정의할 수 있으므로 **클래스 안에 함수를 넣어야 할 필요는 없다**고 한다.
+- main() 에는 인자값이 없어도 된다. (인자를 선언한다면 `args: Array<String>` )
+- 자바 표준 라이브러리들의 래퍼를 제공
+    - System.out.println -> println 
+    - Scanner -> readLine() : 사용자 입력
+    - Arrays.asList() -> array.toList() : 배열을 리스트로 변환
+    - StringBuilder or 반복문 -> joinToString() : 배열/리스트를 문자열로 변환 
+- 세미콜론 사용안해도됨. 안쓰는걸 권장. 좋다고하심
+   
+---   
+###2.1.2 파라미터와 반환값이 있는 함수 선언
+
+```kotlin
+fun max(a: Int, b:Int): Int {
+    return if (a>b) a else b
+}
+```
+- 2번째 fun
+- 타입과 이름을 콜론(:) 으로 구분
+- 코틀린에서 **if는 결과를 만든는 식** (문 이 아님)
+- 자바였다면 ``a>b ? a : b``
+- <span style="color:green">코틀린에서는 루프(for, while, do/while) 을 제외한 대부분의 제어 구조가 식 </span> 
+```kotlin
+val x = if (myBoolean) 3 else 5
+val direction = when (inputString) {
+    "u" -> UP
+    "d" -> DOWN
+    "else" -> UNKOWN
+}
+val number = try {
+    inputString.toInt()
+} catch (nfe: NumberFormatException) {
+    -1
+}
+
+```
+---
+   
+###2.1.3 식 본문을 사용해 함수를 더 간결하게 정의
+중괄호로 둘러싸인 함수 **블록 본문 함수** (block body function)
+```kotlin
+fun max(a: Int, b:Int): Int {
+    return if (a>b) a else b
+}
+```
+
+등호와 식으로 이루어진 **식 본문 함수** (expression body function)
+```kotlin
+fun max(a: Int, b:Int): Int = if (a>b) a else b
+```
+
+반환타입 생략
+```kotlin
+fun max(a: Int, b:Int) = if (a>b) a else b
+```
+
+더 간결해졌군요 (crap++crap)
+
+```
+Q . 근데 코틀린은 1장에서부터 정적 타입 지정 언어 라고 했는데 반환타입이 없어도 되나요
+A . 식 본문 함수는 무적입니다. 괜찮아요. 타입추론님의 가호를 받고 계세요. 컴파일러님이 손수 분석해주시고 추론해주십니다.
+    단, 식 본문 함수에만 생략 가능합니다.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+```
+
+타입 추론.. 강력한 것 같은데 좀 더 사용해봐야겠군요.
+
+---
+###2.1.4 데이터를 저장하기 위해 변수 선언
+```kotlin
+val question: String = "삶, 우주, 그리고 모든 것에대한 궁극적인 쩌는 질문"
+val answer: Int = 42
+
+의 타입을 생략하면
+
+val question = "삶, 우주, 그리고 모든 것에대한 국극적인 쩌는 질문"
+val answer = 42
+
+
+```
+<br>
+변수 선언 시 초기화를 하지 않고 나중에 값을 대입하고 싶을 때는 타입을 추론할 수 없기 때문에 반드시 명시 해야함
+
+```kotlin
+fun main() {
+    val answer: Int
+    answer = 42
+}
+```
+---
+
+###2.1.5 변수를 읽기 전용 변수나 재대입 가능 변수로 표시
+- val : 읽기 전용 참조 (자바의 final)
+- var : 재대입 가능한 참조
+
+**왠만하면 val 로 선언! 필요할 때만 var**
+
+함수 결과값으로 초기화 가능 
+```kotlin
+fun canPerformOperation(): Boolean {
+    return true
+}
+
+fun main() {
+    val result: String //초기화 없이 선언
+    if (canPerformOperation()) {
+        result = "Success" 
+    }
+    else {
+        result = "Can't perform operation"
+    }
+}
+```
+초기화 된 가변 리스트 원소 추가 가능
+```kotlin
+fun main() {
+    val languages = mutableListOf("Java")
+    languages.add("Kotlin")
+}
+```
+---
+###2.1.6 더 쉽게 문자열 형식 지정: 문자열 템플릿
+```kotlin
+fun main() {
+    val input = readln() //반갑. 근데 readLine()이 아니네용 readLine()은 String? 로 nullable이라고 합니다.
+    val name = if (input.isNotBlank()) input else "Kotlin"
+    plintln("Hello, $name!")
+}
+```
+
+- $ 는 문자열 내에서 변수참조 (참조하지 않으려면 백슬래쉬(\)를 앞에 붙이면됨)
+
+중괄호 통해 복잡한 식도 가능 
+```kotlin
+fun main() {
+    val name = readln()
+    if (name.isNotBlank()) {
+        println("Hello, ${name.length}-letter person!")
+    }
+}
+```
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
