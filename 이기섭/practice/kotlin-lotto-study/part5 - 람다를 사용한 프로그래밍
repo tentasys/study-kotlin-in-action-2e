@@ -1,0 +1,158 @@
+# 5장 람다를 사용한 프로그래밍
+- 람다식과 멤버 참조를 사용해 코드 조각과 행동 방식을 함수에게 전달
+- 코틀린에서 함수형 인터페이스를 정의하고 자바의 함수형 인터페이스를 사용
+- 수신 객체 지정 람다 사용
+
+## 5.1 람다식과 멤버 참조
+### 5.1.1 람다 소개: 코드 블록을 값으로 다루기
+
+- 일급 시민인 함수 : 함수를 값으로 다룰 수 있다. 함수에서 다른 함수를 반환할 수 있다
+- 불변성 : 객체를 만들 때 일단 만들어진 다음에는 내부 상태가 변하지 않음을 보장하는 방법으로 설계
+- 부수 효과 없음 : 다른 객체나 외부 세계의 상태를 변경하지 않게 구성...이것은 PURE..
+
+object 선언으로 리스너 구현
+```kotlin
+button.setOnClickListener(obejct: OnClickListener {
+    override fun onClick(v: View) {
+        println("I was clicked!")
+    }
+})
+```
+람다로
+```kotlin
+button.setOnClickListener {
+    println("I was clicked!")
+}
+```
+
+### 5.1.2 람다와 컬렉션
+```kotlin
+data class Person(val name:String, val age:Int)
+
+fun findTheOldest(people: List<Person>) {
+    var maxAge = 0
+    var theOldest: Person? = null
+    for (person in people) {
+        if (person.age > maxAge) {
+            maxAge = person.age
+            theOldest = person
+        }
+    }
+    println(theOldest)
+}
+
+fun main() {
+    val people = listOf(Person("Alice", 29), Person("Bob", 31), Person("Giseop", 24))
+    findTheOldest(people)
+    // Person(name=Bob, age=31)
+    
+    println(people.maxByOrNull {it.age})
+    // Person(name=Bob, age=31)
+    
+    //자바였다면 people.stream().max(Comparator.comparingInt(Person::getAge)).orElseGet(null)
+    
+    //정식 코드 식
+    people.maxByOrNull({p:Person -> p.age})
+
+    //실제 함수
+    public inline fun <T, R : Comparable<R>> Iterable<T>.maxByOrNull(selector: (T) -> R): T?{ 
+    //... 
+    }
+}
+```
+- maxByOrNull : 최대값을 지닌 객체 반환, 모든 컬렉션에 사용가능
+
+이름 붙인 인자를 사용해 람다 넘기기
+```kotlin
+fun main() {
+    val people = listOf(Person("Alice", 29), Person("Bob", 31))
+    val names = people.joinToString(
+        separator = " ",
+        transform = {p: Person -> p.name}
+    )
+    println(names)
+    // Alice Bob
+    
+    //이걸 괄호 밖으로 전달
+     people.joinToStaring(" ") {p:Person -> p.name}
+    
+    //파라미터 타입 제거되면
+    people.maxByOrNull { p: Person -> p.age} //파라미터타입 명시
+    people.maxByOrNull { p -> p.age} //파라미터 타입을 컴파일러가 추론... 대 추론...!!
+    
+}
+```
+
+컴파일러가 람다 파라미터 타입을 추론하지 못하는 경우도 있지만, 언제 그런지는 여기서 다루지 않음. 컴파일러가 타입을 추론 못하는 경우 컴파일 시점에 알려주니 그때는 명시하도록!
+
+```kotlin
+fun main() {
+    val sum = {x:Int, y:Int -> 
+        println("Computing the sum of $x and $y...")
+        x + y
+    }
+}
+```
+- 본문이 여러줄이면 맨 마지막 식이 람다의 return 값이 된다. return 이 없음.
+
+
+람다 안에서 바깥 함수의 로컬 변수 변경하기
+```kotlin
+fun printProblemCounts(responses: Collection<String>) {
+    var clientErrors = 0 
+    var serverErrors = 0 
+    responses.forEach {
+        if (it.startsWith("4")) {
+            clientErrors++
+        } else if (it.startsWith("5")) {
+            serverErrors++
+        }
+    }
+    println("$clientErrors client errors, $serverErrors server errors")
+}
+
+fun main() {
+    val responses = listOf("200 OK", "418 I'm a teapot", 
+                           "500 Interval Server Error")
+    printProblemCounts(responses)
+    // 1 client erros, 1 server errors
+}
+```
+
+- 람다 안에서 람다 밖 변수에 접근 및 변경 (prefix, clientErrors, serverErrors)
+- 위 변수들을 람다가 캡처한 변수
+
+어떻게 가능한가?
+```kotlin
+class Ref<T>(var value: T)
+
+fun main() {
+    val counter = Ref(0)  //val 선언한 참조 클래스의 인스턴스에 var변수 변경
+    val inc = {counter.value++} 
+}
+
+fun main() {
+    var counter = 0     //var로 해도 위의 속임수를 적용해서 람다에서 변경가능
+    val inc = {counter++}
+}
+```
+
+### 5.1.5 멤버 참조
+- ::
+- Person::age
+- ::Person -> Person 생성자 참조
+- ::sendEamil -> 람다 대신 멤버 참조 
+- Person::isAdult -> 확장함수도 참조
+
+### 5.1.6
+```kotlin
+val seb = Person("Sebastian", 26)
+val personsAgeFunction = Person::age
+
+println(personsAgeFunction(seb))
+//26
+
+val sebsAgeFuntion = seb::age
+println(sebsAgeFuntion())
+```
+
