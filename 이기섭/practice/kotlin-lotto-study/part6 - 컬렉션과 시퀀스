@@ -1,0 +1,231 @@
+# 컬렉션과 시퀀스
+- 함수형 스타일로 컬렉션 다루기
+- 시퀀스: 컬렉션 연산을 지연시켜 수행하기
+
+## 6.1 컬렉션에 대한 함수형 API
+
+filter
+```kotlin
+fun main() {
+    val list = listOf(1,2,3,4)
+    println(list.filter { it % 2 == 0 })
+}
+```
+
+filter
+```kotlin
+fun main() {
+    val people = listOf(Person("Alice", 29), Person("Bob", 31))
+    println(people.filter {it.age >= 30})
+}
+```
+
+map
+```kotlin
+fun main() {
+    val list = listOf(1,2,3,4)
+    println(list.map {it * it})
+}
+```
+
+map
+```kotlin
+fun main() {
+    val people = listOf(Person("Alice", 29), Person("Bob", 31))
+    println(people.map {it.name})
+}
+```
+
+한줄로 간결하게
+```kotlin
+fun main() {
+    println(people.filter { it.age > 30 }.map(Person::name))
+}
+```
+
+모든 값을 비교하여 최댓값연산 (filter 내에서 최댓값연산)
+```kotlin
+fun main() {
+    people.filter {
+        val oldestPerson = people.maxByOrNumm(Person::age)
+        it.age == oldestPerson?.age
+    }
+}
+```
+
+최댓값만 연산 (최댓값먼저 찾고 필터)
+```kotlin
+fun main() {
+    val max = people.maxByOrNull(Person::age)?.age
+    people.filter {it.age == maxAge}
+}
+```
+
+걸러내기 함수와 변환함수(with Index) - filterIndexed , mapIndexed
+
+- index , keys, values 도 가능
+```kotlin
+fun main() {
+    val numbers = listOf(1,2,3,4,5,6,7)
+    val filtered = numbers.filterIndexed {index, element -> index % 2 == 0 && element > 3 }
+    
+    println(filtered)
+    
+    val mapped = numbers.mapIndexed {index,  element -> index + element}
+}
+```
+
+### 6.1.2 컬렉션 값 누적: reduce 와 fold
+
+reduce
+```kotlin
+fun main() {
+    val list= listOf(1,2,3,4)
+    println(list.reduce { acc, element -> acc+element})
+    //10
+    
+    println(list.reduce {acc, element -> acc*element})
+    //24
+}
+```
+
+fold 는 reduce와 같지만 시작값 지정
+```kotlin
+fun main() {
+    val people = listOf(
+        Person("Alex", 29),
+        Person("Natalia", 28)
+    )
+    val folded = people.fold("") { acc, person -> acc+person.name}
+    println(folded)
+    //AlexNatalia
+}
+```
+reduce 의 중간값 보기 - runningReduce
+```kotlin
+fun main() {
+    val list = listOf(1,2,3,4)
+    val summed = list.runningReduce{acc,element -> 
+        acc + elemet
+    }
+    println(summed)
+    //[1,3,6,10]
+}
+```
+
+### 6.1.3 컬렉션에 술어 적용: all, any, none, count, find
+- all: 모든원소가 조건 만족
+- any : 하나라도 만족
+- !any = none
+- 공허한 참 : 컬렉션의 원소가 없으면 비교하지않고 정상수행 가능하도록 함 
+    - any : false
+    - all : true
+    - none : true
+    
+- count : 원소 개수 , 컬렉션의 size보다 효율적임. size는 계산을 위해 중간 컬렉션 생김
+- find : 원소 하나 찾기
+
+### 6.1.4 리스트를 분할해 리스트으 ㅣ쌍으로 만들기 : partition
+- filterNot : !filter
+- partition : filter와 filterNot 으로 리스트 쌍으로 반환
+
+```kotlin
+fun main() {
+    val (comeIn, stayOut) = people.partition(canBeInClub27)
+    println(comeIn)
+    println(stayOut)
+}
+```
+
+### 6.1.5 리스트를 여러 그룹으로 이뤄진 맵으로 바꾸기: groupBy
+```kotlin
+fun main() {
+    val list = listOf("apple","ant","banana","cantaloupe")
+    println(list.groupby(String::first))
+}
+```
+
+###6.1.6 컬렉션을 맵으로 변환: associate, associateWith, associateBy
+자신의 좌항과 우항으로 쌍을 만들어내느 중위 함수
+```kotlin
+fun main() {
+    val people = listOf(Person("Joe",21), Person("Mary",31))
+    val nameToAge = people.associate {it.name to it.age}
+    println(nameToAge)
+}
+```
+
+```kotlin
+fun main() {
+    val people = listOf(
+      Person("Joe", 22),
+      Person("Mary",31),
+      Person("Jamie",22)
+    )
+  val personToAge = people.associateWith {it.age}
+  println(personToAge)
+  //{Person(name=Joe, age=22)=22, Person(name=Mary, age=31)=31},Person(name=Jamie, age=22)=22}
+  val ageToPerson = people.associateBy {it.age}
+  println(ageToPerson)
+  //{22=Person(...) , 31=Person(...)} key = age 가 들어가서 중복 사라짐
+}
+```
+
+### 6.1.7 가변 컬렉션의 원소 변경 : replaceAll, fill
+- replaceAll : 모든 원소 변경
+- fill : 채우기
+
+### 6.1.8 컬렉션의 특별한 경우 처리: ifEmpty
+- ifEmpty : 아무 원소도 없을 때 기본값 생성
+
+### 6.1.9 컬렉션 나누기: chunked, windowed
+- chunked : 겹치지 않게 나눠서 연산 (1..3, 4..6 , 7..9)
+- windowed : 겹쳐서 연산 (1..3 , 2..4, 3..5)
+
+### 6.1.10 컬렉션 합치기: zip
+- 두 리스트를 합친다. 대응하는 원소가 없으면 무시
+- 연쇄 호출 가능 ex) names zip ages zip countries
+- 연쇄 호출 시 내포된 쌍의 리스트로 생성됨
+```kotlin
+fun main() {
+    val names = listOf("Joe", "Mary", "Jamie")
+    val ages = listOf(22, 31, 31, 44, 0)
+    println(names.zip(ages))
+    println(names.zip(ages)) {name, age -> Person(name, age)}
+}
+```
+
+### 6.1.11 내포된 컬렉션의 원소 처리: flatMap , flatten
+- 집합을 계산할 때 내포 없이 계산
+
+```kotlin
+fun main() {
+    val authors library.flatMap{ it.authors }
+    println(authors)  //내포 없이 연산
+    println(authors.toSet()) //중복제거
+  
+}
+```
+
+## 6.2 지연 계산 컬렉션 연산 : 시퀀스
+- 컬렉션 함수는 연쇄적용 시 중간결과를 저장하는 컬렉션이 연쇄만큼 생김
+- 시퀀스는 lazy 계산을 통해 연쇄연산을 통해 시퀀스 호출 시 컬렉션 생성
+- 큰 컬렉션 연산에는 시퀀스를 사용하라. 연쇄 시 중간 원소 재배열에 많은 비용이 들기 때문.
+```kotlin
+fun main() {
+    listOf(1,2,3,4)
+      .asSequence()
+      .map{
+          print("map($it)")
+          it%2 ==0
+      }.toList()
+}
+```
+
+### 6.2.2 시퀀스 만들기
+```kotlin
+fun main() {
+    val naturalNumbers = generateSequence(0) {it + 1}
+    val numbersTo100 = naturalNumbers.takeWhile {it <= 100}
+}
+```
