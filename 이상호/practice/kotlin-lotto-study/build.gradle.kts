@@ -13,7 +13,9 @@ repositories {
 }
 
 dependencies {
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testImplementation("io.kotest:kotest-runner-junit5:${property("kotestVersion")}")
+    testImplementation("io.kotest:kotest-assertions-core:${property("kotestVersion")}")
+    testImplementation("io.kotest:kotest-framework-engine:${property("kotestVersion")}")
 }
 
 tasks.test {
