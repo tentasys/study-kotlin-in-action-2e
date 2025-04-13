@@ -69,6 +69,32 @@
 | 번호 생성기	 | numberGenerator	      | 로또 번호 무작위 생성 기능          |
 | 통계	     | statistics	           | 회차별 당첨 번호, 당첨금 등의 통계 데이터 |
 
+## 클래스 설계
+
+- Application.kt
+  - 실행 프로그램
+- AutoPicks
+  - 수동으로 입력한 로또 객체
+- Lotto
+  - 6개의 숫자로 이루어진 로또 번호 객체
+- Number
+  - 1 ~ 45의 숫자 중 1개의 번호 객체
+- Purchase
+  - 로또 구매 비용 담당 객체
+- Rate
+  - 당첨금 비율 객체
+- Statistics
+  - 통계 처리를 위한 객체
+- WinningLotto
+  - 지난주 당첨번호 담당 객체
+- Winnings
+  - 로또 당첨금과 기준을 담당하는 객체
+
+## 테스트 결과
+
+![MISSION_1_RESULT.png](result%2FMISSION_1_RESULT.png)
+
+
 ## 미션 2 : 로또 2등
 
 ### 기능 요구사항
