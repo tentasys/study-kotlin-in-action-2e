@@ -1,6 +1,6 @@
 package io.study.kotlin.lotto
 
-import io.study.kotlin.chapter03.sub03.joinToString
+import java.util.stream.Collectors
 
 class Lotto(private val lotto : List<Number>) {
 
@@ -15,10 +15,6 @@ class Lotto(private val lotto : List<Number>) {
         }
     }
 
-    fun match(input : List<Number>) : Boolean {
-        return this.lotto == input
-    }
-
     companion object {
         fun create(input: List<Int>) : Lotto {
             val numbers = input.stream()
@@ -28,7 +24,29 @@ class Lotto(private val lotto : List<Number>) {
         }
     }
 
+    fun toSet(): Set<Number>? {
+        return this.lotto.stream()
+            .collect(Collectors.toSet())
+    }
+
+    fun size() : Int {
+        return this.lotto.size
+    }
+
     override fun toString(): String {
         return "[${lotto.joinToString(", ")}]"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Lotto
+
+        return lotto == other.lotto
+    }
+
+    override fun hashCode(): Int {
+        return lotto.hashCode()
     }
 }
