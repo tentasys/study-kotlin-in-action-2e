@@ -1,0 +1,169 @@
+#기본 타입, 컬렉션, 배열
+- 원시 타입과 다른 기본 타입의 자바 타입과의 관계
+- 코틀린 컬렉션과 배열 및 이들의 널 가능성과 상호운용성
+
+##8.1 원시 타입과 기본 타입
+- Int , Boolean, Any 등 기본타입
+- 자바와 달리 원시타입과 래퍼타입 구분 x
+
+### 8.1.1 정수, 부동소수점 수 , 문자, 불리언 값을 원시 타입으로 표현
+
+래퍼타입 구분하지 않음
+```kotlin
+val i: int = 1
+val list: List<int> = listOf(1,2,3)
+```
+
+coerceIn
+```kotlin
+fun showProgress(progress :Int) {
+    val percent = progress.coerceIn(0,100)
+    println("We're $percent % done!")
+}
+```
+
+- int -> Int
+- 정수 타입 : Byte, Short, Int, Long
+- 부동소수점 숫자 타입 : Float, Double
+- 문자타입 : Char
+- 부리언 타입 : Boolean
+
+### 8.1.2 양수를 표현하기 위해 모든 비트 범위 사용: 부호 없는 숫자 타입
+- Ubyte - 8비트 - 0~255
+- UShort - 16비트 - 0~65535
+- UInt - 32비트 - 0~ 2`32 -1
+- ULong - 64비트 - 0~2₩64 -1
+
+### 8.1.3 널이 될 수 있는 기본 타입: Int?. Boolean? 등
+- 자바원시타입으로 표현 x -> 자바 래퍼타입으로 컴파일됨
+
+```kotlin
+data class Person(val name : String,
+val age: Int? = null) {
+    fun isOlderThan(other: Person) : Boolean? {
+        if(age == null || other.age == null)
+            return null
+        return age> other.age
+    }
+}
+
+fun main() {
+    println(Person("Sam",35).isOlderThan(Person("Amy",42)))
+    //false
+}
+```
+
+### 8.1.4 수 변환
+- 코틀린은 한 타입의 수를 다른 타입의 수로 자동변환하지 않는다
+- 원시타입에 대한 양방향 변환함수 제공
+- 원시타입 리터럴 : 123L, 0.12 , 123.4f, 0xbcdL
+- 오버플로, 언더플로 검사에대한 추가비용 발생하지 않음
+- 변환에 실패하면 NumberFormatException
+- 변환 실패 시 null 반환해주는 toIntOrNull, toBZyteOrNull
+
+### 8.1.5 Any, Any?: 코틀린 타입 계층의 뿌리
+
+- 자바의 Object가 있다면, 널이될 수 없는 타입의 조상 Any타입
+- 자바 원시타입은 Object x
+- Any -> Object 바이트 코드로 컴파일
+
+### 8.1.6 Unit 타입: 코틀린의 void
+
+- 자바의 void = 코틀린 Unit
+- Unit 은 타입인자로 사용가능
+
+```kotlin
+interface Processor<T> {
+    fun process() T
+}
+
+class NoResultProcessor : Processor<Unit> {
+    override fun process() {
+        TODO("Not yet implemented")
+    }
+}
+```
+
+### 8.1.7 Nothing 타입 : 이 함수는 결코 반환되지 않는다
+- 함수가 정상적으로 끝나지 않는 경우를 표현
+```kotlin
+val address = company.address ?: fail("No address")
+
+println(address.city)
+```
+
+## 8.2 컬렉션과 배열
+
+###8.2.1 널이 돌 수 았는 값의 컬렉션과 널이 될 수 있는 컬렉션
+- List<Int?>? , 원소도 널이될 수 있고, 리스트도 널이 될 수 있음
+
+널이 될 수 있는 값으로 이뤄진 컬렉션 만들기
+```kotlin
+fun readNumbers(text: String): List<Int?> {
+    val result = mutableListOf<Int?>()
+    for (line in text.lineSequence()) {
+        val nuberOfNull = line.toIntOrNull()
+        result.add(numberOrNull)
+    }
+    return result
+}
+```
+
+map힘수를 사용해 널이 될 수 있는 값으로 이뤄진 컬렉션 만들기
+```kotlin
+fun readNumbers2(text: String) :List<Int?> =
+    text.lineSequence().map {it.toIntOrNull()}.toList()
+```
+
+filterNotNull를 널이 될 수 있는 값으로 이뤄진 컬렉션에 대해 사용하기
+```kotlin
+fun addValidNumbers(numbers: List<Int?>) {
+    val validNumbers = numbers.filterNotNull()
+    println("Sum of valid numves: ${validNumbers.sum()}")
+    pringln("Invalid numbers : ${numbers.size - validNumbers.size}")
+}
+```
+
+### 8.2.2 읽기 전용과 변경 가능한 컬렉션
+- Collection 인터페이스 : 추가 , 제거 x
+- MutableZCollection 수정가능
+
+읽기 전용과 변경 가능한 컬렉션 인터페이스
+```kotlin
+fun <T> copyElements(source: Collection<T>, target: MutableCollection<T>) {
+    for (item in source) {
+        target.add(item)
+    }
+}
+```
+
+### 8.2.3 코틀린 컬렉션과 자바 컬렉션은 밀접히 연관됨
+- 읽기전용 : listOf, setOf, List, mapOf
+- 변경 가능 : mutableListOf, MutableList, linkedSetOf, buildList, sortedSetOf, linkedMapOf, sortedMapOf...
+- 자바는 읽기전용 컬렉션을 구분하지 않으므로 코틀린에서 읽기전용으로 선언된 객체라도 자바 코드에서는 그 컬렉션에 대해 수정 가능
+- 컬렉션을 자바코드에게 넘길 떄는 특별히 주의해야함
+
+### 8.2.4 자바에서 선언한 컬렉션은 코틀린에서 플랫폼 타입으로보임
+- 플랫폼 타입 - 널이될수있는타입,널이될수없는 타입 둘다 허용
+
+컬렉션 파라미터를 받는 자바 인터페이스
+```java
+interface FileContentProcessor {
+    void processContetns(
+            File path,
+            byte[] binaryContents,
+            List<String> textContents
+    );
+}
+```
+
+코틀리구현
+```kotlin
+class FileIndexer : FileContentProcessor {
+    override fun processContents(
+        path: File,
+        binaryContents: ByteArray?,
+        textContents: List<String>?
+    )
+}
+```
