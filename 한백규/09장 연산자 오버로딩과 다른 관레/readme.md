@@ -152,4 +152,183 @@ fun main() {
 
 ### 9.3.3 객체로부터 범위 만들기: rangeTo와 rangeUntil의 관례
 
-// todo: 4/28 마무리 예정,,,
+- `..` 연산자:  rangeTo 함수를 간략하게 표현
+- rangeTo 함수 &rarr; 범위 반환
+
+
+```kotlin
+val now = LocalDate.now()
+val vacation = now..now.plusDays(10) // now.rangeTo(now.plusDays(10))와 동일
+println(now.plusWeeks(1) in vacation) // true
+```
+
+### 9.3.4 자신의 타입에 대해 루프 수행: iterator 관례
+
+- `for (x in list) { … }` = `list.iterator()`
+- iterator 확장 함수 정의 가능
+
+```kotlin
+operator fun ClosedRange<LocalDate>.iterator() : Iterator<LocalDate> =
+object : Iterator<LocalDate> {
+var current = start
+
+        override fun hasNext() = current <= endInclusive
+
+        override fun next() = current.apply {
+            current = plusDays(1)
+        }
+    }
+
+fun main() {
+val newYear = LocalDate.ofYearDay(2042, 1)
+val daysoff = newYear.minusDays(1)..newYear
+for(dayoff in daysoff) { println(dayoff) } // 2041-12-31, 2042-01-01
+}
+```
+
+## 9.4 component 함수를 사용해 구조 분해 선언 제공
+
+- 여러 다른 변수 한번에 초기화 가능
+
+```kotlin
+fun main() {
+val p = Point(1, 2)
+val (x, y) = p
+}
+```
+
+### 9.4.1 구조 분해 선언과 루프
+
+- for 선언문 안에서 구조 분해 사용 가능
+
+```kotlin
+fun printEntries(map: Map<String, String>) {
+    for((key, value) in map) {
+        println("$key -> $value")
+    }
+}
+```
+
+### 9.4.2 _ 문자를 사용해 구조 분해 값 무시
+
+- 구조 분해 식 내 `_` 키워드 사용하면 미할당
+
+```kotlin
+fun introducePerson(p: Person) {
+    val (firstName, _, age) = p
+    println("this is $fisrtName, aged $age.")
+}
+```
+
+## 9.5 프로퍼티 접근자 로직 재활용: 위임 프로퍼티
+
+> 위임이란, 객체가 직접 수행하지 않고 다른 도우미 객체가 처리하도록 맡기는 디자인 패턴
+
+### 9.5.1 위임 프로퍼티의 기본 문법과 내부 동작
+
+```kotlin
+var p: Type by Delegate()
+
+class Foo {
+    var p: Type by Delegate()
+}
+
+class Foo {
+    private val delegate = Delegate() // 컴파일러가 생성한 도우미 프로퍼티
+  
+  var p: Type
+    set(value: Type) = delegate.setValue(/* ... */, value) // p 프로퍼티를 위해 컴파일러가 생성한 접근자 getValue 메서드 호출
+    get() = delegate.getValue( /* ... */)
+}
+```
+
+### 9.5.2 위임 프로퍼티 사용: by lazy()를 사용한 지연 초기화
+
+> lazy 함수 : 코틀린 관례에 맞는 getValue 메서드 들어있는 객체 반환
+
+```kotlin
+class Person(val name: String) {
+    private var _emails: List<String>? = null
+    val emails: List<String>
+        get() {
+            if(_emails == null) {
+                _emails = loadEmails()
+            }
+            return _emails!!
+        }
+}
+```
+
+- 지연 초기화 미사용 x
+- thread safe x
+
+```kotlin
+class Person(val name: String) {
+    val emails by lazy { loadEmails() }
+}
+```
+
+- 지연 초기화 
+- 한번만 초기화되는 점 보장
+
+### 9.5.4 위임 프로퍼티는 커스텀 접근자가 있는 감춰진 프로퍼티로 변환된다
+
+```kotlin
+// 컴파일 전
+class C {
+		var prop: Type by MyDelegate()
+}
+
+// 컴파일 후
+class C {
+		private val <delegate> = Mydelegate()
+		var prop: Type
+			get() = <delegate>.getValue(this, <property>)
+			set(value: Type) = <delegate>.setValue(this, <property>, value)
+}
+```
+
+- 위임 프로퍼티 &rarr; 컴파일러가 모든 프로퍼티 접근자 내 getValue, setValue 호출 코드 생성
+
+### 9.5.5 맵에 위임해서 동적으로 애트리뷰트 접근
+
+```kotlin
+// 위임 직접 구현
+class Person {
+    private val _attribute = hashMapOf<String, String>()
+    fun setAttribute(attrName: String, value: String) {
+        _attribute[attrName] = value
+    }
+    
+    val name: String
+     get() = _attribute["name"]!!
+}
+
+// map에 구현되어 있는 getValue, setValue에게 위임
+class Person {
+    private val _attribute = hashMapOf<String, String>()
+    fun setAttribute(attrName: String, value: String) {
+        _attribute[attrName] = value
+    }
+
+    val name: String by _attribute
+}
+```
+
+- 자신의 프로퍼티를 동적으로 정의할 수 있는 객체를 만들 때 위임 프로퍼티를 활용
+
+### 9.5.6 실전 프레임워크가 위임 프로퍼티를 활용하는 방법
+
+```kotlin
+object Users : IdTable() {
+    val name = varchar("name", length = 50).index()
+    val age = integer("age")
+}
+
+class User(id: EntityID) : Entity(id) {
+    var name: String by Users.name
+    var age: Int by Users.age
+}
+```
+
+- 위임 프로퍼티 &rarr; db entity field 직접 접근 가능
