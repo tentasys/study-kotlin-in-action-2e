@@ -1,13 +1,14 @@
 package io.study.practice.lotto
 
-import java.util.Scanner
+import java.util.*
 
-class LottoMission01(private val availableNumbers: MutableList<Int>) {
+class LottoMission02(private val availableNumbers: MutableList<Int>) {
 
     private val prizeMap = linkedMapOf<Int, Long>(
         Pair(3, 5_000),
         Pair(4, 50_000),
         Pair(5, 1_500_000),
+        Pair(51, 30_000_000),
         Pair(6, 2_000_000_000),
     )
 
@@ -33,12 +34,16 @@ class LottoMission01(private val availableNumbers: MutableList<Int>) {
             .split(",")
             .map { it.toInt() }
             .toList()
+        println("보너스 볼을 입력해 주세요.")
+        val inputBonusNumber = sc.nextLine()
+        val bonusNumber = inputBonusNumber.trim().toInt()
 
-        printReport(winNumbers, purchasedGames)
+        printReport(winNumbers, bonusNumber, purchasedGames)
     }
 
     private fun printReport(
         winNumbers: List<Int>,
+        bonusNumber: Int,
         purchasedGames: MutableList<LottoGame>,
     ) {
 
@@ -52,7 +57,12 @@ class LottoMission01(private val availableNumbers: MutableList<Int>) {
         var resultMap = mutableMapOf<Int, Int>()
 
         for (game in purchasedGames) {
-            val matchedCount = game.matchCount(winNumbers)
+            var matchedCount = game.matchCount(winNumbers)
+
+            if (matchedCount == 5 && game.numbers.contains(bonusNumber)) {
+                // 2등 처리
+                matchedCount = 51
+            }
             resultMap[matchedCount] = resultMap.getOrDefault(matchedCount, 0) + 1
             totalGameMoney += game.price
             totalPrizeMoney += prizeMap.getOrDefault<Int, Long>(matchedCount, 0)
@@ -60,7 +70,11 @@ class LottoMission01(private val availableNumbers: MutableList<Int>) {
 
         prizeMap.entries
             .forEach { entry ->
-                println("${entry.key}개 일치 (${entry.value}원) - ${resultMap.getOrDefault(entry.key, 0)}개")
+                if (entry.key == 51) {
+                    println("5개 일치, 보너스 볼 일치(${entry.value}원) - ${resultMap.getOrDefault(entry.key, 0)}개")
+                } else {
+                    println("${entry.key}개 일치 (${entry.value}원) - ${resultMap.getOrDefault(entry.key, 0)}개")
+                }
             }
         println("총 수익률은 ${totalPrizeMoney.toFloat() / totalGameMoney.toFloat()}입니다.(기준이 1이기 때문에 결과적으로 손해라는 의미임)")
     }
