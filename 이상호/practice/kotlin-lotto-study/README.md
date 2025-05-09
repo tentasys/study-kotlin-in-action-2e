@@ -51,6 +51,50 @@
 총 수익률은 0.35입니다.(기준이 1이기 때문에 결과적으로 손해라는 의미임)
 ```
 
+## 로또 용어 사전
+| 한글 용어   | 영문명                   | 설명                       |
+|---------|-----------------------|--------------------------|
+| 번호      | number	               | 추첨된 1개의 번호               |
+| 번호 목록   | lotto	                | 추첨된 6개의 당첨 번호 배열         |
+| 자동 선택	  | autoPick	             | 무작위 번호 자동 선택 기능          |
+| 1등 로또   | winningLotto          | 지난주 당첨된 6개의 당첨 번호        |
+| 1등	     | firstPrize 또는 rank1	  | 6개 번호 모두 일치              |
+| 2등	     | secondPrize 또는 rank2	 | 5개 번호 + 보너스 번호 일치        |
+| 3등	     | thirdPrize 또는 rank3	  | 5개 번호 일치                 |
+| 4등	     | fourthPrize 또는 rank4	 | 4개 번호 일치                 |
+| 5등	     | fifthPrize 또는 rank5	  | 3개 번호 일치                 |
+| 미당첨	    | noPrize	              | 당첨되지 않음                  |
+| 당첨금	    | prizeAmount	          | 각 등수별 당첨 금액              |
+| 로또 용지	  | lottoTicket	          | 로또 번호가 인쇄된 종이            |
+| 번호 생성기	 | numberGenerator	      | 로또 번호 무작위 생성 기능          |
+| 통계	     | statistics	           | 회차별 당첨 번호, 당첨금 등의 통계 데이터 |
+
+## 클래스 설계
+
+- Application.kt
+  - 실행 프로그램
+- AutoPicks
+  - 수동으로 입력한 로또 객체
+- Lotto
+  - 6개의 숫자로 이루어진 로또 번호 객체
+- Number
+  - 1 ~ 45의 숫자 중 1개의 번호 객체
+- Purchase
+  - 로또 구매 비용 담당 객체
+- Rate
+  - 당첨금 비율 객체
+- Statistics
+  - 통계 처리를 위한 객체
+- WinningLotto
+  - 지난주 당첨번호 담당 객체
+- Winnings
+  - 로또 당첨금과 기준을 담당하는 객체
+
+## 테스트 결과
+
+![MISSION_1_RESULT.png](result%2FMISSION_1_RESULT.png)
+
+
 ## 미션 2 : 로또 2등
 
 ### 기능 요구사항
