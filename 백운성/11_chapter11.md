@@ -50,8 +50,8 @@ fun printSum(c: Collection<*>) {
 - `reified` 키워드를 사용하면 **실행 시점 타입 정보 유지** 가능 (`inline` 함수만 가능)
 
 ### 타입 소거의 한계
-- `value is List<String>` ← ❌ (실행 시점에 타입 없음)
-- `value is List<*>` ← ✅ (타입 정보 없이 체크 가능)
+- `value is List<String>` : 실행 시점에 타입 없음
+- `value is List<*>` : 타입 정보 없이 체크 가능
 
 ### `reified` 실체화 타입 파라미터
 - `inline fun <reified T> isOfType(value: Any) = value is T`
