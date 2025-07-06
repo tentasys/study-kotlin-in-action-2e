@@ -1,0 +1,306 @@
+# 15장 구조화된 동시성 
+- 구조화된 동시성을 통해 코루틴 간의 계층을 설명하는 방법
+- 구조화된 동시성을 통해 코드 실행과 취소를 세밀하게 제어하고, 코루틴 계층 전반에 걸쳐 자동으로 취소를 전파하는 방법
+- 코루틴 콘텍스트와 구조화된 동시성 간의 관계
+- 취소 시에도 올바르게 동작하는 코드를 작성하는 방법
+
+## 15.1 코루틴 스코프가 코루틴 간의 구조를 확립한다
+다른 여러 코루틴 시작하기
+```kotlin
+fun main() {
+    runBlocking {
+        launch {
+            delay(1.seconds)
+            launch {
+                delay(250.milliseconds)
+                log("Grandchild done")
+            }
+            log("Child 1 done!")
+        }
+        launch {
+            delay(500.milliseconds)
+            log("Child 2 done!")
+        }
+        log("Parent done!")
+    }
+}
+```
+모든 자식 코루틴이 종료될 때 까지 프로그램이 종료되지 않음
+
+### 15.1.1 코루틴 스코프 생성: coroutineScope 함수
+- 새로운 코루틴을 만들지 않고도 코루틴스코프 그룹화
+- 동시적 작업 분해, 여러 코루틴을 활용해 계산을 수행하는 것.
+
+```kotlin
+import kotlinx.coroutines.*
+import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
+
+suspend fun generateValue() : Int {
+    delay(500.milliseconds)
+    return Random.nextInt(0, 10)
+}
+
+suspend fun computeSum() {
+    log("Computing a sum....")
+    val sum = coroutineScope {
+        val a = async {generateValue()}
+        val b = async {generateValue()}
+        a.await() + b.await()
+    }
+    log("Sum is $sum")
+}
+
+fun main() = runBlocking {
+    computeSum()
+}
+```
+
+### 15.1.2 코루틴 스코프를 컴포넌트와 연관시키기: CoroutineScope
+
+코루틴 스코프와 연관된 컴포넌트
+```kotlin
+class ComponentWithScope(dispatcher: CoroutineDispatcher = Dispatchers.Default) {
+    private val scope = CoroutineScope(dispatcher + SupervisorJob())
+        
+    fun start() {
+        log("Starting!")
+        scope.launch {
+            while(true) {
+                delay(500.milliseconds)
+                log("cComponent working!")
+            }
+        }
+        scope.launch {
+            log("Doing a one-off task...")
+            delay(500.milliseconds)
+        }
+    }
+    fun stop() {
+        log("Stopping!")
+        scope.cancel()
+    }
+}
+```
+
+### 15.1.3 GlobalScope 의 위험성
+- 구조화된 동시성이 제공하는 모든 이점을 포기해야함.
+- 전역범위에서 시작된 코루틴은 자동으로 취소되지 않으며, 생명주기 개념도 없음.
+- 사용할 일 거어의 없음
+
+### 15.1.4 코루틴 콘텍스트와 구조화된 동시성
+```kotlin
+fun main() {
+    runBlocking(Dispatcher.Default) {
+        log(coroutineContext)
+        launch {
+            log(coroutineContext)
+            launch(Dispatchers.IO + CoroutineName("mine")) {
+                log(coroutineContext)
+            }
+        }
+    }
+}
+```
+
+## 15.2 취소
+- 코드가 완료되기 전에 실행을 중단하는 것
+
+### 15.2.1 취소 촉발
+```kotlin
+fun main() {
+    runBlocking {
+        val launchedJob = launch {
+            log("I'm launched!")
+            delay(1000.milliseconds)
+            log("I'm done!")
+        }
+        val asyncDeferred = async {
+            log("I'm async")
+            delay(1000.milliseconds)
+            log("I'm done!")
+        }
+        delay(200.milliseconds)
+        launchedJob.cancel()
+        asyncDeferred.cancel()
+    }
+}
+```
+
+### 15.2.2 시간제한이 초과된 후 자동으로 취소 호출
+- withTimeout, withTimeoutOrNull
+
+```kotlin
+suspend fun calculateSomething(): Int {
+    delay(3.seconds)
+    return 2+2
+}
+fun main () = runBlocking {
+    val quickResult = withTimeoutOrNull(500.milliseconds) {
+        calculateSomething()
+    }
+    println(quickResult)
+    //null
+    val slowResult = withTimeoutOrNull(5.seconds) {
+        calculateSomething()
+    }
+    println(slowResult)
+    //4
+}
+```
+
+### 15.2.3 취소는 모든 자식 코루틴에게 전파된다.
+```kotlin
+fun main() = runBlocking {
+    val job = launch {
+        launch {
+            launch {
+                launch {
+                    log("I'm started")
+                    delay(500.milliseconds)
+                    log("I'm done!")
+                }
+            }
+        }
+    }
+    delay(200.milliseconds)
+    job.cancel()
+}
+// 0 [main @coroutine#5] I'm started
+```
+
+### 15.2.4 취소된 코루틴은 특별한 지점에서 CacellationException을 던진다
+- 코루틴은 예외를 사용해 코루틴 계층에서 취소를 전파
+- 이 예외를 실수로 삼켜버리거나, 직접 처리하지 않도록 주의해야 한다.
+```kotlin
+suspend fun doWork() {
+    delay(500.milliseconds)
+    throw UnsupportedOperationException("Didn't work!")
+}
+
+fun main() {
+    runBlocking {
+        withTimeoutOrNull(2.seconds) {
+            while(true) {
+                try {
+                    doWork()
+                } catch (e: Exception) {
+                    println("Oops: ${e.message}")
+                }
+            }
+        }
+    }
+}
+```
+
+### 15.2.5 취소는 협력적이다.
+```kotlin
+suspend fun doCpuHeavyWork(): Int {
+    log("I'm doing work!")
+    var counter = 0
+    val startTime = java.lang.System.currentTimeMillis()
+    while (java.lang.System.currentTimeMillis() < startTime + 500) {
+        counter++
+    }
+    return counter  
+}
+fun main() {
+    runBlocking {
+        val byJob = launch {
+            repeat(5) {
+                doCpuHeavyWork()
+            }
+        }
+        delay(600.milliseconds)
+        myJob.cancel()
+    }
+}
+```
+
+```kotlin
+suspend fun doCpuHeavyWork(): Int {
+    log("I'm doing work!")
+    var counter = 0
+    val startTime = System.currentTimeMillis()
+    while(System.currentTimeMillis() < startTime + 500) {
+        counter++
+        delay(100.milliseconds)
+    }
+    return counter
+}
+```
+
+### 15.2.6 코루틴이 취소됐는지 확인
+- CoroutineScope의 isActive 속성 확인
+```kotlin
+val myJob = launch {
+    repeat(5){
+        doCpuHeavyWork()
+        if(!isActive) return@launch
+    }
+}
+```
+
+```kotlin
+val myJob = launch {
+    repeat(5){
+        doCpuHeavyWork()
+        ensureActive()
+    }
+}
+```
+
+### 15.2.6 다른 코루틴에게 기회를 주기: yield 함수
+- 코드 안에서 취소 가능 지점을 제공
+- 현재 점유된 디스패처에서 다른 코루틴이 작ㅇ넙할 수 있게 해줌.
+
+yield를 사용해 다른 코루틴을 전환하기
+```kotlin
+suspend fun doCpuHeavyWork(): Int {
+    var counter = 0 
+    val startTime = System.currentTimeMillis()
+    while (System.currentTimeMillis() < startTime + 500) {
+        counter++
+        yield()
+    }
+    return counter
+}
+```
+
+### 15.2.8 리소스를 얻을 때 취소를 염두해 두기
+finally 블록을 사용해 리소스 닫기
+```kotlin
+val dbTask = launch {
+    val db = DatabaseConnection()
+    try {
+        delay(500.milliseconds)
+        db.write("I love coroutines!")
+    } finally {
+        db.close()
+    }
+}
+```
+
+use 를 사용해 리소스를 자동으로 닫기
+```kotlin
+val dbTask = launch {
+    DatabaseConnection().use {
+        delay(500.milliseconds)
+        it.write("I love coroutines!")
+    }
+}
+```
+
+### 15.2.9 프레임워크가 여러분 대신 취소를 할 수 있다.
+케이토에서 장기 실행 코루틴 시작하기ㅏ
+```kotlin
+routing {
+    get("/") {
+        call.application.launch {
+            println("I'm doing some background work!")
+            delay(5000.milliseconds)
+            println("I'm done")
+        }
+    }
+}
+```
